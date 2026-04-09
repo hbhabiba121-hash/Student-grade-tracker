@@ -1,21 +1,24 @@
 from rest_framework import serializers
-from .models import SchoolClass
-from subjects.models import Subject
+from .models import SchoolClass  
+from django.db.models import Avg
 
 class ClassSerializer(serializers.ModelSerializer):
-    """Serializer for the SchoolClass model with student and subject counts."""
-    
-    student_count = serializers.SerializerMethodField(method_name='getStudentCount')
-    subject_count = serializers.SerializerMethodField(method_name='getSubjectCount')
+    average_score = serializers.SerializerMethodField()
 
     class Meta:
         model = SchoolClass
-        fields = ['id', 'name','session', 'subjects', 'student_count', 'subject_count', 'created_at']
+        fields = ['id', 'name', 'average_score']
 
-    def getStudentCount(self, obj):
-        """Return total number of students in this class."""
-        return obj.students.count()
-
-    def getSubjectCount(self, obj):
-        """Return total number of subjects linked to this class."""
-        return obj.subjects.count()
+    #def get_average_score(self, obj):
+        #"""Calculates the overall average score for all students in this class."""
+        #from grades.models import Grade
+        # On filtre les notes par la classe de l'étudiant
+        #avg = Grade.objects.filter(student__school_class=obj).aggregate(Avg('score'))['value__avg']
+        #return round(avg, 1) if avg is not None else None
+    def get_average_score(self, obj):
+        """Calculates the overall average score for all students in this class."""
+        from grades.models import Grade
+        # On donne aussi le nom 'average' ici
+        result = Grade.objects.filter(student__school_class=obj).aggregate(average=Avg('score'))
+        avg = result['average']
+        return round(avg, 1) if avg is not None else None
