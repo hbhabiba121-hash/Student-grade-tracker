@@ -1,9 +1,9 @@
 from rest_framework import viewsets
-from .models import Class
+from .models import SchoolClass
 from .serializers import ClassSerializer
 
 class ClassViewSet(viewsets.ModelViewSet):
-    """Handles all CRUD operations for Class."""
+    """Handles all CRUD operations for SchoolClass."""
     
-    queryset = Class.objects.all().order_by('name')
+    queryset = SchoolClass.objects.all().order_by('name')
     serializer_class = ClassSerializer

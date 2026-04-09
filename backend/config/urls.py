@@ -7,10 +7,10 @@ from subjects.views import SubjectViewSet
 from grades.views import GradeViewSet
 
 router = DefaultRouter()
-router.register(r'classes', ClassViewSet, basename='class')
-router.register(r'students', StudentViewSet, basename='student')
-router.register(r'subjects', SubjectViewSet, basename='subject')
-router.register(r'grades', GradeViewSet, basename='grade')
+router.register(r'classes', ClassViewSet, basename='SchoolClass')
+router.register(r'students', StudentViewSet, basename='Student')
+router.register(r'subjects', SubjectViewSet, basename='Subject')
+router.register(r'grades', GradeViewSet, basename='Grade')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
