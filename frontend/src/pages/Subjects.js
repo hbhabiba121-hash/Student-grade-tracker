@@ -1,22 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { fetchStudents, createStudent, updateStudent, deleteStudent, fetchClasses } from '../api';
+import { fetchSubjects, createSubject, updateSubject, deleteSubject } from '../api';
 import Modal from '../components/Modal';
-import StatusBadge from '../components/StatusBadge';
 
-function Students() {
-  const [students, setStudents] = useState([]);
-  const [classes, setClasses] = useState([]);
+function Subjects() {
+  const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
-  const [form, setForm] = useState({ first_name: '', last_name: '', school_class: '' });
+  const [form, setForm] = useState({ name: '', description: '' });
   const [error, setError] = useState('');
-  const [filterClass, setFilterClass] = useState('');
 
   const loadData = async () => {
-    const [s, c] = await Promise.all([fetchStudents(), fetchClasses()]);
-    setStudents(s);
-    setClasses(c);
+    const data = await fetchSubjects();
+    setSubjects(data);
     setLoading(false);
   };
 
@@ -24,30 +20,25 @@ function Students() {
 
   const openCreate = () => {
     setEditItem(null);
-    setForm({ first_name: '', last_name: '', school_class: '' });
+    setForm({ name: '', description: '' });
     setError('');
     setShowModal(true);
   };
 
   const openEdit = (s) => {
     setEditItem(s);
-    setForm({ first_name: s.first_name, last_name: s.last_name, school_class: s.school_class });
+    setForm({ name: s.name, description: s.description || '' });
     setError('');
     setShowModal(true);
   };
 
   const handleSubmit = async () => {
-    if (!form.first_name || !form.last_name) { setError('First and last name are required'); return; }
+    if (!form.name) { setError('Subject name is required'); return; }
     try {
-      const payload = {
-        first_name: form.first_name,
-        last_name: form.last_name,
-        school_class: form.school_class || null,
-      };
       if (editItem) {
-        await updateStudent(editItem.id, payload);
+        await updateSubject(editItem.id, form);
       } else {
-        await createStudent(payload);
+        await createSubject(form);
       }
       setShowModal(false);
       loadData();
@@ -57,64 +48,45 @@ function Students() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this student?')) return;
-    await deleteStudent(id);
+    if (!window.confirm('Delete this subject?')) return;
+    await deleteSubject(id);
     loadData();
   };
 
-  const filtered = filterClass
-    ? students.filter(s => String(s.school_class) === String(filterClass))
-    : students;
-
-  if (loading) return <div className="loading">Loading students...</div>;
+  if (loading) return <div className="loading">Loading subjects...</div>;
 
   return (
     <div className="page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Students</h1>
-          <p className="page-subtitle">{students.length} students total</p>
+          <h1 className="page-title">Subjects</h1>
+          <p className="page-subtitle">{subjects.length} subjects total</p>
         </div>
-        <button className="btn btn-primary" onClick={openCreate}>+ New Student</button>
-      </div>
-
-      <div style={{ marginBottom: 20 }}>
-        <select
-          style={{ width: 220 }}
-          value={filterClass}
-          onChange={e => setFilterClass(e.target.value)}
-        >
-          <option value="">All classes</option>
-          {classes.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+        <button className="btn btn-primary" onClick={openCreate}>+ New Subject</button>
       </div>
 
       <div className="table-card">
-        <div className="table-card-header">
-          <span className="table-card-title">
-            {filterClass ? `Students in ${classes.find(c => String(c.id) === String(filterClass))?.name}` : 'All Students'}
-          </span>
-          <span style={{ fontSize: 12, color: 'var(--gray-400)' }}>{filtered.length} results</span>
-        </div>
         <table>
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Class</th>
-              <th>Average</th>
-              <th>Status</th>
+              <th>#</th>
+              <th>Subject Name</th>
+              <th>Description</th>
+              <th>Created</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map(s => (
+            {subjects.map((s, i) => (
               <tr key={s.id}>
-                <td><strong>{s.full_name}</strong></td>
-                <td>{s.class_name || '—'}</td>
-                <td>{s.average_score !== null ? `${s.average_score} / 20` : '—'}</td>
-                <td><StatusBadge status={s.status} /></td>
+                <td style={{ color: 'var(--gray-400)', fontFamily: 'DM Mono, monospace', fontSize: 12 }}>
+                  {String(i + 1).padStart(2, '0')}
+                </td>
+                <td><strong>{s.name}</strong></td>
+               
+                <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>
+                  {new Date(s.created_at).toLocaleDateString()}
+                </td>
                 <td>
                   <div className="action-btns">
                     <button className="btn btn-ghost btn-sm" onClick={() => openEdit(s)}>Edit</button>
@@ -123,39 +95,33 @@ function Students() {
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
-              <tr><td colSpan={5} className="empty-state">No students found</td></tr>
+            {subjects.length === 0 && (
+              <tr><td colSpan={5} className="empty-state">No subjects yet</td></tr>
             )}
           </tbody>
         </table>
       </div>
 
       {showModal && (
-        <Modal title={editItem ? 'Edit Student' : 'New Student'} onClose={() => setShowModal(false)}>
+        <Modal title={editItem ? 'Edit Subject' : 'New Subject'} onClose={() => setShowModal(false)}>
           {error && <p style={{ color: 'var(--red)', fontSize: 12, marginBottom: 12 }}>{error}</p>}
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">First Name</label>
-              <input value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} placeholder="First name" />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Last Name</label>
-              <input value={form.last_name} onChange={e => setForm({ ...form, last_name: e.target.value })} placeholder="Last name" />
-            </div>
+          <div className="form-group">
+            <label className="form-label">Subject Name</label>
+            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Mathematics" />
           </div>
           <div className="form-group">
-            <label className="form-label">Class</label>
-            <select value={form.school_class} onChange={e => setForm({ ...form, school_class: e.target.value })}>
-              <option value="">No class assigned</option>
-              {classes.map(c => (
-                <option key={c.id} value={c.id}>{c.name} — {c.session}</option>
-              ))}
-            </select>
+            <label className="form-label">Description (optional)</label>
+            <textarea
+              rows={3}
+              value={form.description}
+              onChange={e => setForm({ ...form, description: e.target.value })}
+              placeholder="Brief description..."
+            />
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
             <button className="btn btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
             <button className="btn btn-primary" onClick={handleSubmit}>
-              {editItem ? 'Save Changes' : 'Create Student'}
+              {editItem ? 'Save Changes' : 'Create Subject'}
             </button>
           </div>
         </Modal>
@@ -164,4 +130,4 @@ function Students() {
   );
 }
 
-export default Students;
+export default Subjects;
