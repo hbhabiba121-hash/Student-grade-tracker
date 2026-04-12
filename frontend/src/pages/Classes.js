@@ -32,7 +32,7 @@ function Classes() {
     setForm({
       name: cls.name,
       session: cls.session,
-      subjects: cls.subject_names || [],
+      subjects: cls.subject_ids || [],
     });
     setError('');
     setShowModal(true);

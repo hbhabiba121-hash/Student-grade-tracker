@@ -1,74 +1,62 @@
 from rest_framework import serializers
 from .models import SchoolClass
+from subjects.models import Subject
 from django.db.models import Avg
 
-PASSING_THRESHOLD = 10
-
 class ClassSerializer(serializers.ModelSerializer):
-    """Serializer for SchoolClass with counts, averages and pass rate."""
 
-    student_count = serializers.SerializerMethodField(method_name='getStudentCount')
-    subject_count = serializers.SerializerMethodField(method_name='getSubjectCount')
-    average_score = serializers.SerializerMethodField(method_name='getAverageScore')
-    subject_names = serializers.SerializerMethodField(method_name='getSubjectNames')
-    pass_rate = serializers.SerializerMethodField(method_name='getPassRate')
-    top_student = serializers.SerializerMethodField(method_name='getTopStudent')
+    subjects = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Subject.objects.all()
+    )
+
+    subject_names = serializers.SerializerMethodField()
+    subject_ids = serializers.SerializerMethodField()
+
+    student_count = serializers.SerializerMethodField()
+    subject_count = serializers.SerializerMethodField()
 
     class Meta:
         model = SchoolClass
-        fields = ['id', 'name', 'session', 'subject_names', 'student_count',
-                  'subject_count', 'average_score', 'pass_rate', 'top_student', 'created_at']
+        fields = [
+            'id',
+            'name',
+            'session',
+            'subjects',
+            'subject_ids',
+            'subject_names',
+            'student_count',
+            'subject_count',
+        ]
 
-    def getStudentCount(self, obj):
-        """Return total number of students in this class."""
-        return obj.students.count()
+    # 🔥 REQUIRED FOR MANYTOMANY CREATE
+    def create(self, validated_data):
+        subjects = validated_data.pop('subjects', [])
+        obj = SchoolClass.objects.create(**validated_data)
+        obj.subjects.set(subjects)
+        return obj
 
-    def getSubjectCount(self, obj):
-        """Return total number of subjects linked to this class."""
-        return obj.subjects.count()
+    # 🔥 REQUIRED FOR UPDATE
+    def update(self, instance, validated_data):
+        subjects = validated_data.pop('subjects', None)
 
-    def getSubjectNames(self, obj):
-        """Return list of subject names linked to this class."""
+        instance.name = validated_data.get('name', instance.name)
+        instance.session = validated_data.get('session', instance.session)
+        instance.save()
+
+        if subjects is not None:
+            instance.subjects.set(subjects)
+
+        return instance
+
+    def get_subject_names(self, obj):
         return list(obj.subjects.values_list('name', flat=True))
 
-    def getAverageScore(self, obj):
-        """Return average score of all students in this class."""
-        from grades.models import Grade
-        result = Grade.objects.filter(student__school_class=obj).aggregate(average=Avg('score'))
-        avg = result['average']
-        return round(avg, 1) if avg is not None else None
+    def get_subject_ids(self, obj):
+        return list(obj.subjects.values_list('id', flat=True))
 
-    def getPassRate(self, obj):
-        """Return percentage of students with average score above passing threshold."""
-        from grades.models import Grade
-        students = obj.students.all()
-        if not students.exists():
-            return None
-        passingCount = 0
-        for student in students:
-            result = Grade.objects.filter(student=student).aggregate(average=Avg('score'))
-            avg = result['average']
-            if avg is not None and avg >= PASSING_THRESHOLD:
-                passingCount += 1
-        return round((passingCount / students.count()) * 100, 1)
+    def get_student_count(self, obj):
+        return obj.students.count()
 
-    def getTopStudent(self, obj):
-        """Return the name and average of the student with the highest average in this class."""
-        from grades.models import Grade
-        students = obj.students.all()
-        if not students.exists():
-            return None
-        topStudent = None
-        highestAvg = -1
-        for student in students:
-            result = Grade.objects.filter(student=student).aggregate(average=Avg('score'))
-            avg = result['average']
-            if avg is not None and avg > highestAvg:
-                highestAvg = avg
-                topStudent = student
-        if topStudent is None:
-            return None
-        return {
-            'name': f"{topStudent.first_name} {topStudent.last_name}",
-            'average': round(highestAvg, 1)
-        }
+    def get_subject_count(self, obj):
+        return obj.subjects.count()

@@ -83,7 +83,7 @@ function Subjects() {
                   {String(i + 1).padStart(2, '0')}
                 </td>
                 <td><strong>{s.name}</strong></td>
-               
+               <td style={{ color: 'var(--gray-600)' }}>{s.description || '—'}</td>
                 <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>
                   {new Date(s.created_at).toLocaleDateString()}
                 </td>

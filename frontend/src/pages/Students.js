@@ -29,32 +29,42 @@ function Students() {
     setShowModal(true);
   };
 
-  const openEdit = (s) => {
-    setEditItem(s);
-    setForm({ first_name: s.first_name, last_name: s.last_name, school_class: s.school_class });
-    setError('');
-    setShowModal(true);
-  };
+const openEdit = (s) => {
+  setEditItem(s);
+  setForm({
+    first_name: s.first_name,
+    last_name: s.last_name,
+    school_class: s.school_class || ''   // ✅ IMPORTANT FIX
+  });
+  setError('');
+  setShowModal(true);
+};
 
-  const handleSubmit = async () => {
-    if (!form.first_name || !form.last_name) { setError('First and last name are required'); return; }
-    try {
-      const payload = {
-        first_name: form.first_name,
-        last_name: form.last_name,
-        school_class: form.school_class || null,
-      };
-      if (editItem) {
-        await updateStudent(editItem.id, payload);
-      } else {
-        await createStudent(payload);
-      }
-      setShowModal(false);
-      loadData();
-    } catch (e) {
-      setError('Something went wrong. Try again.');
+const handleSubmit = async () => {
+  if (!form.first_name || !form.last_name) {
+    setError('First and last name are required');
+    return;
+  }
+
+  try {
+    const payload = {
+      first_name: form.first_name,
+      last_name: form.last_name,
+      school_class: form.school_class ? Number(form.school_class) : null
+    };
+
+    if (editItem) {
+      await updateStudent(editItem.id, payload);
+    } else {
+      await createStudent(payload);
     }
-  };
+
+    setShowModal(false);
+    loadData();
+  } catch (e) {
+    setError('Something went wrong. Try again.');
+  }
+};
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this student?')) return;
@@ -112,7 +122,13 @@ function Students() {
             {filtered.map(s => (
 <tr key={s.id}>
   <td><strong>{s.full_name || `${s.first_name} ${s.last_name}`}</strong></td>
-  <td>{s.class_name || '—'}</td>
+ <td>
+  {s.class_name ? (
+    <span className="chip">{s.class_name}</span>
+  ) : (
+    <span style={{ color: '#999' }}>No class</span>
+  )}
+</td>
   <td>{s.average_score !== null && s.average_score !== undefined ? `${s.average_score} / 20` : '—'}</td>
   <td><StatusBadge status={s.status || 'No grades'} /></td>
   <td>
@@ -145,7 +161,12 @@ function Students() {
           </div>
           <div className="form-group">
             <label className="form-label">Class</label>
-            <select value={form.school_class} onChange={e => setForm({ ...form, school_class: e.target.value })}>
+<select
+  value={form.school_class || ''}
+  onChange={e =>
+    setForm({ ...form, school_class: e.target.value })
+  }
+>
               <option value="">No class assigned</option>
               {classes.map(c => (
                 <option key={c.id} value={c.id}>{c.name} — {c.session}</option>

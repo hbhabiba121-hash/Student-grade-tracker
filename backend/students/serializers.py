@@ -13,11 +13,12 @@ class StudentSerializer(serializers.ModelSerializer):
     average_score = serializers.SerializerMethodField(method_name='getAverageScore')
     status = serializers.SerializerMethodField(method_name='getStatus')
     class_name = serializers.SerializerMethodField(method_name='getClassName')
+    
 
     class Meta:
         model = Student
-        fields = ['id', 'full_name', 'first_name', 'last_name',
-                  'class_name', 'average_score', 'status', 'created_at']
+        fields = ['id', 'full_name', 'first_name', 'last_name', 'school_class',
+          'class_name', 'average_score', 'status', 'created_at']
 
     def getFullName(self, obj):
         """Combines first and last name for display."""
