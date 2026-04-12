@@ -1,0 +1,2 @@
+# core/constants.py
+MAX_NAME_LENGTH = 100
